@@ -9,6 +9,7 @@ import WatchedSummary from "./WatchedSummary";
 import WatchedMoviesList from "./WatchedMoviesList";
 import Loader from "./Loader";
 import ErrorMessage from "./ErrorMessage";
+import MovieDetails from "./MovieDetails";
 
 const tempMovieData = [
   {
@@ -61,17 +62,39 @@ const KEY = "59dfbeae";
 
 export default function App() {
   const [movies, setMovies] = useState([]);
-  const [watched, setWatched] = useState(tempWatchedData);
+  const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const query = "interstellar";
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState(null);
+
+  const handleSelectedMovie = (id) => {
+    setSelectedId((selectedId) => (selectedId === id ? null : id));
+  };
+
+  function handleCloseMovie() {
+    setSelectedId(null);
+  }
+
+  const handleAddWatched = (movie) => {
+    setWatched((watched) => [...watched, movie]);
+  };
+
+  const handleRemoveWatched = (id) => {
+    setWatched((watched) => watched.filter((el) => el.imdbID !== id));
+  };
 
   useEffect(() => {
+    ////browser API
+    const controller = new AbortController();
+
     async function fetchMovies() {
       try {
         setIsLoading(true);
+        setError("");
         const res = await fetch(
-          `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`
+          `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`,
+          { signal: controller.signal }
         );
 
         if (!res.ok) throw new Error("Something went wrong");
@@ -87,13 +110,25 @@ export default function App() {
         setIsLoading(false);
       }
     }
-    fetchMovies();
-  }, []);
+
+    if (query.length < 3) {
+      setMovies([]);
+      setError("");
+      return;
+    }
+
+    const timer = setTimeout(fetchMovies, 500);
+
+    return function () {
+      // controller.abort();
+      clearTimeout(timer);
+    };
+  }, [query]);
 
   return (
     <>
       <Navbar>
-        <Search />
+        <Search query={query} setQuery={setQuery} />
         <NumResults movies={movies} />
       </Navbar>
       <Main>
@@ -102,17 +137,34 @@ export default function App() {
           element={
             <>
               {isLoading && <Loader />}
-              {!isLoading && !error && <MovieList movies={movies} />}
+              {!isLoading && !error && (
+                <MovieList
+                  movies={movies}
+                  onSelectedMovie={handleSelectedMovie}
+                />
+              )}
               {error && <ErrorMessage message={error} />}
             </>
           }
         />
         <Box
           element={
-            <>
-              <WatchedSummary watched={watched} />
-              <WatchedMoviesList watched={watched} />
-            </>
+            selectedId ? (
+              <MovieDetails
+                selectedId={selectedId}
+                onCloseMovie={handleCloseMovie}
+                onAddWatched={handleAddWatched}
+                watched={watched}
+              />
+            ) : (
+              <>
+                <WatchedSummary watched={watched} />
+                <WatchedMoviesList
+                  watched={watched}
+                  onRemoveWatched={handleRemoveWatched}
+                />
+              </>
+            )
           }
         />
       </Main>
