@@ -62,7 +62,12 @@ const KEY = "59dfbeae";
 
 export default function App() {
   const [movies, setMovies] = useState([]);
-  const [watched, setWatched] = useState([]);
+  //getting 'watched list' from local storage
+  const [watched, setWatched] = useState(function () {
+    const storedValue = localStorage.getItem("watched");
+    return JSON.parse(storedValue);
+  });
+  // const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -78,11 +83,24 @@ export default function App() {
 
   const handleAddWatched = (movie) => {
     setWatched((watched) => [...watched, movie]);
+
+    //we cannot do
+    //localStorage.setItem('watched', JSON.stringify(watched))
+    //because we`ve just updated the 'watched' arr in line before; so we need to spread arr and add the movie
+    // localStorage.setItem("watched", JSON.stringify([...watched, movie]));
   };
 
   const handleRemoveWatched = (id) => {
     setWatched((watched) => watched.filter((el) => el.imdbID !== id));
   };
+
+  //adding to local storage in useeffect
+  useEffect(
+    function () {
+      localStorage.setItem("watched", JSON.stringify(watched));
+    },
+    [watched]
+  );
 
   useEffect(() => {
     ////browser API
