@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Navbar from "./Navbar";
 import Main from "./Main";
 import Box from "./Box";
@@ -10,6 +10,8 @@ import WatchedMoviesList from "./WatchedMoviesList";
 import Loader from "./Loader";
 import ErrorMessage from "./ErrorMessage";
 import MovieDetails from "./MovieDetails";
+import { useMovies } from "./useMovies";
+import { useLocalStorageState } from "./useLocalStorageState";
 
 const tempMovieData = [
   {
@@ -58,28 +60,28 @@ const tempWatchedData = [
   },
 ];
 
-const KEY = "59dfbeae";
-
 export default function App() {
-  const [movies, setMovies] = useState([]);
-  //getting 'watched list' from local storage
-  const [watched, setWatched] = useState(function () {
-    const storedValue = localStorage.getItem("watched");
-    return JSON.parse(storedValue);
-  });
-  // const [watched, setWatched] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
+
+  const handleCloseMovie = useCallback(() => {
+    setSelectedId(null);
+  }, []);
+
+  const { movies, isLoading, error } = useMovies(query, handleCloseMovie);
+
+  //custom hook as useState hook
+  const [watched, setWatched] = useLocalStorageState([], "watched");
+
+  //getting 'watched list' from local storage
+  // const [watched, setWatched] = useState(function () {
+  //   const storedValue = localStorage.getItem("watched");
+  //   return JSON.parse(storedValue);
+  // });
 
   const handleSelectedMovie = (id) => {
     setSelectedId((selectedId) => (selectedId === id ? null : id));
   };
-
-  function handleCloseMovie() {
-    setSelectedId(null);
-  }
 
   const handleAddWatched = (movie) => {
     setWatched((watched) => [...watched, movie]);
@@ -94,54 +96,13 @@ export default function App() {
     setWatched((watched) => watched.filter((el) => el.imdbID !== id));
   };
 
-  //adding to local storage in useeffect
-  useEffect(
-    function () {
-      localStorage.setItem("watched", JSON.stringify(watched));
-    },
-    [watched]
-  );
-
-  useEffect(() => {
-    ////browser API
-    const controller = new AbortController();
-
-    async function fetchMovies() {
-      try {
-        setIsLoading(true);
-        setError("");
-        const res = await fetch(
-          `http://www.omdbapi.com/?apikey=${KEY}&s=${query}`,
-          { signal: controller.signal }
-        );
-
-        if (!res.ok) throw new Error("Something went wrong");
-
-        const data = await res.json();
-        if (data.Response === "False") throw new Error("Movie not found");
-
-        setMovies(data.Search);
-      } catch (err) {
-        console.error(err.message);
-        setError(err.message);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    if (query.length < 3) {
-      setMovies([]);
-      setError("");
-      return;
-    }
-
-    const timer = setTimeout(fetchMovies, 500);
-
-    return function () {
-      // controller.abort();
-      clearTimeout(timer);
-    };
-  }, [query]);
+  // //adding to local storage in useeffect
+  // useEffect(
+  //   function () {
+  //     localStorage.setItem("watched", JSON.stringify(watched));
+  //   },
+  //   [watched]
+  // );
 
   return (
     <>
