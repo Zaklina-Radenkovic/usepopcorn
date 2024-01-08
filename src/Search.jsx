@@ -1,28 +1,35 @@
 import { useEffect, useRef } from "react";
+import { useKey } from "./useKey";
 
 function Search({ query, setQuery }) {
   const inputEl = useRef(null);
 
-  useEffect(
-    function () {
-      function callback(e) {
-        //not to clear input field if it is focused
-        if (document.activeElement === inputEl.current) return;
+  useKey("Enter", function () {
+    if (document.activeElement === inputEl.current) return;
+    inputEl.current.focus();
+    setQuery("");
+  });
 
-        if (e.code === "Enter") {
-          inputEl.current.focus();
-          setQuery("");
-        }
-      }
+  // useEffect(
+  //   function () {
+  //     function callback(e) {
+  //       //not to clear input field if it is focused
+  //       if (document.activeElement === inputEl.current) return;
 
-      document.addEventListener("keydown", callback);
+  //       if (e.code === "Enter") {
+  //         inputEl.current.focus();
+  //         setQuery("");
+  //       }
+  //     }
 
-      return () => {
-        document.removeEventListener("keydown", callback);
-      };
-    },
-    [setQuery]
-  );
+  //     document.addEventListener("keydown", callback);
+
+  //     return () => {
+  //       document.removeEventListener("keydown", callback);
+  //     };
+  //   },
+  //   [setQuery]
+  // );
 
   return (
     <input
